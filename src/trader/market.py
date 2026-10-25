@@ -11,6 +11,7 @@ import pandas as pd
 
 from trader import calendar as tse
 from trader.config import StrategyConfig
+from trader.quality import QualityReport, repair_market
 
 log = logging.getLogger(__name__)
 
@@ -49,6 +50,7 @@ class MarketData:
     volume: pd.DataFrame
     dividends: pd.DataFrame
     splits: pd.DataFrame
+    quality: QualityReport = field(default_factory=QualityReport)
     _signals: dict[tuple, Signals] = field(default_factory=dict, repr=False)
 
     @property
@@ -165,7 +167,13 @@ def download_market_data(tickers: Iterable[str], start: date, end: date | None =
                 base = base.reindex(base.index.union(frame.index))
                 base.update(frame)
                 frames[name] = base
-    return from_frames(frames)
+    md = from_frames(frames)
+    md.quality = repair_market(md)
+    for repair in md.quality.repairs:
+        log.info("分割の未調整を補正: %s %s 倍率 %g", repair.ticker, repair.date.date(), repair.factor)
+    for ticker, days in md.quality.unresolved.items():
+        log.warning("不自然な値動きのため判断から外す: %s %s", ticker, [d.date().isoformat() for d in days[:3]])
+    return md
 
 
 def require_session(md: MarketData, session: pd.Timestamp, required: Iterable[str]) -> list[str]:

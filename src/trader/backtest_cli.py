@@ -50,6 +50,8 @@ def main(argv: list[str] | None = None) -> int:
     md = download_market_data(sorted(tickers), args.start, args.end)
     usable = [t for t in universe["ticker"] if t in md.tickers and md.close[t].notna().any()]
     log.info("株価を取得できた銘柄: %d/%d", len(usable), len(universe))
+    bench = settings.strategy.benchmark_ticker
+    log.info("%s のデータ開始日: %s", bench, md.adj_close[bench].first_valid_index())
     universe = universe[universe["ticker"].isin(usable)].reset_index(drop=True)
 
     start = args.start + timedelta(days=1)

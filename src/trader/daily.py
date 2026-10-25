@@ -123,6 +123,13 @@ def run(
         )
     if missing_universe:
         warnings.append(f"当日の株価が取れなかった {len(missing_universe)} 銘柄は今回の判断から外しました")
+    unreliable = md.quality.unreliable
+    if unreliable & set(universe["ticker"]):
+        warnings.append(
+            f"株価データに不自然な値動きがある {len(unreliable & set(universe['ticker']))} 銘柄は判断から外しました"
+        )
+    for ticker in sorted(unreliable & set(held)):
+        warnings.append(f"{ticker} の株価データに不自然な値動きがあります。証券会社のアプリで株価を確認してください")
 
     if archive is not None:
         warnings.append(f"模擬運用の記録を {archive[0].name} に保存し、実運用を新しく始めました")

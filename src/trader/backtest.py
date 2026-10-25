@@ -68,6 +68,9 @@ def run_backtest(
     settings = scenario.settings
     sessions = md.sessions
     earliest = sessions[min(warmup_sessions(settings), len(sessions) - 1)]
+    bench_trend = md.signals(settings.strategy).trend.get(settings.strategy.benchmark_ticker)
+    if bench_trend is not None and bench_trend.notna().any():
+        earliest = max(earliest, bench_trend.first_valid_index())  # TOPIX のデータが揃ってから始める
     first = max(pd.Timestamp(start), earliest) if start else earliest
     mask = sessions >= first
     if end:
@@ -89,7 +92,7 @@ def run_backtest(
 
 def equal_weight_index(md: MarketData, tickers: list[str], index: pd.DatetimeIndex) -> pd.Series:
     """同じ銘柄群を毎日均等に持った場合の指数（コスト無し、参考値）。"""
-    cols = [t for t in tickers if t in md.adj_close.columns]
+    cols = [t for t in tickers if t in md.adj_close.columns and t not in md.quality.unreliable]
     returns = md.adj_close[cols].pct_change(fill_method=None).loc[index].mean(axis=1, skipna=True)
     returns.iloc[0] = 0.0
     return (1 + returns.fillna(0.0)).cumprod()
@@ -182,6 +185,30 @@ def _verdict(ref: BacktestResult) -> list[str]:
     return lines
 
 
+def _quality_lines(md: MarketData, universe: pd.DataFrame, settings: Settings) -> list[str]:
+    names = dict(zip(universe["ticker"], universe["name"], strict=True))
+    bench = settings.strategy.benchmark_ticker
+    first = md.adj_close[bench].first_valid_index() if bench in md.adj_close else None
+    q = md.quality
+    lines = [
+        "## データ品質",
+        "",
+        f"- TOPIX（{bench}）のデータ開始日: {first.date() if first is not None else 'なし'}"
+        "（検証はこの日から200営業日以上たってから始めています）",
+        f"- 株式分割が未調整だった値動きを補正: {len(q.repairs)} 件",
+    ]
+    for r in q.repairs[:10]:
+        label = names.get(r.ticker, r.ticker)
+        lines.append(f"  - {label}（{r.ticker}）{r.date.date()} 株数 {r.factor:g} 倍")
+    if q.unresolved:
+        lines.append(f"- 分割で説明できない不自然な値動きがあり、判断から外した銘柄: {len(q.unresolved)} 件")
+        for ticker, days in list(q.unresolved.items())[:10]:
+            lines.append(f"  - {names.get(ticker, ticker)}（{ticker}）{', '.join(str(d.date()) for d in days[:3])}")
+    else:
+        lines.append("- 分割で説明できない不自然な値動き: なし")
+    return lines + [""]
+
+
 def render_report(
     results: list[BacktestResult],
     sensitivity: list[BacktestResult],
@@ -213,11 +240,12 @@ def render_report(
         f"保有中の最高値から {_pct(s.trailing_stop, False) if s.trailing_stop else 'なし'} 下落で売却。"
         f"TOPIX が {s.trend_window} 日平均より下なら全て売却。"
         f"資金が最高時から {_pct(s.max_drawdown, False) if s.max_drawdown else 'なし'} 減ったら全て売って"
-        f" {s.drawdown_pause_months} か月休止。",
+        f" {s.drawdown_pause_months} か月休止（休止明けは基準をリセットするため、通算の最大下落はこの値を超え得る）。",
         f"- 約定: 判断の翌営業日の始値。片道コスト {settings.satellite.cost_rate:.2%}、"
         f"税率 {settings.satellite.tax_rate:.3%}。配当は受け取り扱い。",
         "- ルールの数値は検証前に決めたもので、この結果を見て調整していません。",
         "",
+        *_quality_lines(md, universe, settings),
         f"## 1. 主な結果 — {ref.scenario.title}",
         "",
         *_metric_rows([("戦略", m), ("TOPIX（1306）", ref.bench_metrics), ("同じ銘柄群の均等保有", nav_metrics(ew))]),

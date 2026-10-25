@@ -199,3 +199,17 @@ def test_tax_on_previous_year_gains_is_deducted_once() -> None:
     assert res.tax_paid == pytest.approx(2_000) and state.cash == pytest.approx(48_000)
     res = engine.step(state, md, idx[first_2025 + 1], settings, UNI, apply_splits=True)
     assert res.tax_paid == 0
+
+
+def test_split_records_on_different_days_are_applied_once() -> None:
+    close = _flat(1000)
+    close[3:] = 500
+    md = market_from_arrays(
+        MID_MONTH,
+        {"A.T": close, BENCH: _flat(1000)},
+        splits={("A.T", "2024-03-07"): 2.0, ("A.T", "2024-03-08"): 2.0},  # 同じ分割が2日に記録された
+    )
+    state = _state_holding(last=2)
+    _step(state, md, 3)
+    _step(state, md, 4)
+    assert state.positions["A.T"].shares == 20

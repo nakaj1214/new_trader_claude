@@ -21,8 +21,10 @@ from trader import strategy
 from trader.config import Settings
 from trader.market import MarketData
 from trader.portfolio import Fill, Order, PortfolioState, Position, Trade
+from trader.quality import is_implausible
 
 SPLIT_LOOKBACK_SESSIONS = 10
+SPLIT_DEDUPE_DAYS = 7  # 同じ倍率の分割記録が日付違いで二重に付いても1回だけ反映する
 ANOMALY_DROP_RATIO = 0.7  # 1:1.5 の分割（0.67倍）まで拾う
 TOP_CANDIDATES_TO_REPORT = 10
 
@@ -57,6 +59,16 @@ def _valid(value: float) -> bool:
     return not math.isnan(value) and value > 0
 
 
+def _recently_applied(state: PortfolioState, ticker: str, day: pd.Timestamp, ratio: float) -> bool:
+    for key in state.applied_splits:
+        parts = key.split("@")
+        if len(parts) != 3 or parts[0] != ticker or abs(float(parts[2]) - ratio) > 1e-9:
+            continue
+        if abs((pd.Timestamp(parts[1]) - day).days) <= SPLIT_DEDUPE_DAYS:
+            return True
+    return False
+
+
 def _apply_splits(state: PortfolioState, md: MarketData, session: pd.Timestamp, res: StepResult) -> None:
     """Yahoo Finance の分割記録は遅れて付くことがあるため、直近数営業日を見て未適用の分を反映する。"""
     idx = md.sessions.get_loc(session)
@@ -66,8 +78,8 @@ def _apply_splits(state: PortfolioState, md: MarketData, session: pd.Timestamp, 
             ratio = md.value("splits", day, ticker)
             if not _valid(ratio) or ratio == 1.0:
                 continue
-            key = f"{ticker}@{day.date().isoformat()}"
-            if key in state.applied_splits:
+            key = f"{ticker}@{day.date().isoformat()}@{ratio:g}"
+            if key in state.applied_splits or _recently_applied(state, ticker, day, ratio):
                 continue
             state.applied_splits.append(key)
             if pd.Timestamp(pos.entry_date) >= day:
@@ -189,7 +201,7 @@ def _track_index(md: MarketData, ticker: str | None, prev: pd.Timestamp, session
     if not ticker:
         return None
     now, before = md.value("adj_close", session, ticker), md.value("adj_close", prev, ticker)
-    if not (_valid(now) and _valid(before)):
+    if not (_valid(now) and _valid(before)) or is_implausible(now / before):
         return None
     return now / before
 

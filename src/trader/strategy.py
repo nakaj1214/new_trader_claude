@@ -60,7 +60,10 @@ def rank_universe(
 ) -> list[Candidate]:
     """長期トレンドが上向きで流動性のある銘柄を、過去12か月（直近1か月除く）の上昇率順に並べる。"""
     rows = []
+    unreliable = md.quality.unreliable
     for ticker, sector in zip(universe["ticker"], universe["sector"], strict=True):
+        if ticker in unreliable:
+            continue
         close = _at(md.close, session, ticker)
         adj = _at(md.adj_close, session, ticker)
         trend = _at(signals.trend, session, ticker)
