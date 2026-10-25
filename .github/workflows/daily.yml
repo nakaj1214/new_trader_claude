@@ -6,6 +6,11 @@ on:
     - cron: "30 10 * * 1-5"  # 平日 19:30 JST（データ遅れ時の再試行）
     - cron: "30 22 * * 0-4"  # 平日 7:30 JST（最終確認。前営業日が未処理なら処理し、だめならエラー通知）
   workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "動作確認だけ（通知文をログに出す。保存・通知はしない）"
+        type: boolean
+        default: false
 
 permissions:
   contents: write
@@ -31,15 +36,18 @@ jobs:
         env:
           DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
           SCHEDULE: ${{ github.event.schedule }}
+          DRY_RUN: ${{ inputs.dry_run }}
         run: |
           args=()
           if [ "$SCHEDULE" = "30 22 * * 0-4" ]; then args+=(--final-attempt); fi
+          if [ "$DRY_RUN" = "true" ]; then args+=(--dry-run); fi
           code=0
           python scripts/run_daily.py "${args[@]}" || code=$?
           echo "code=$code" >> "$GITHUB_OUTPUT"
           exit "$code"
 
       - name: 状態を保存（commit）
+        if: ${{ !inputs.dry_run }}
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
