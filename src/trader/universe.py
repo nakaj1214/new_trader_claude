@@ -3,16 +3,18 @@
 from __future__ import annotations
 
 import io
+import re
 from collections.abc import Callable, Iterable
 from datetime import date
 from pathlib import Path
+from urllib.parse import urljoin
 
 import pandas as pd
 import requests
 
-JPX_LISTING_URL = (
-    "https://www.jpx.co.jp/markets/statistics-equities/misc/tvdivq0000001vg2-att/data_j.xls"
-)
+# ファイルの置き場所（-att/ の部分）は JPX 側で変わることがあるため、一覧ページからリンクをたどる
+JPX_LISTING_PAGE = "https://www.jpx.co.jp/markets/statistics-equities/misc/01.html"
+_LISTING_LINK = re.compile(r"""href=["']([^"']*data_j\.xlsx?)["']""", re.IGNORECASE)
 UNIVERSE_COLUMNS = ["code", "ticker", "name", "sector", "size", "as_of"]
 
 
@@ -53,9 +55,19 @@ def parse_jpx_listing(raw: pd.DataFrame, tiers: Iterable[str], as_of: date) -> p
     return out[UNIVERSE_COLUMNS].sort_values("code").reset_index(drop=True)
 
 
+def find_listing_url(html: str, page_url: str = JPX_LISTING_PAGE) -> str:
+    match = _LISTING_LINK.search(html)
+    if match is None:
+        raise UniverseError(f"{page_url} に銘柄一覧ファイル（data_j.xls）へのリンクが見つかりません")
+    return urljoin(page_url, match.group(1))
+
+
 def fetch_jpx_listing(timeout: float = 30.0) -> pd.DataFrame:
-    response = requests.get(JPX_LISTING_URL, timeout=timeout)
+    page = requests.get(JPX_LISTING_PAGE, timeout=timeout)
+    page.raise_for_status()
+    response = requests.get(find_listing_url(page.text), timeout=timeout)
     response.raise_for_status()
+    # pandas がファイルの中身から .xls（xlrd）か .xlsx（openpyxl）かを判定する
     return pd.read_excel(io.BytesIO(response.content), dtype=str)
 
 

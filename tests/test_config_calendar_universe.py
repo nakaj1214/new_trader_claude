@@ -9,7 +9,7 @@ import pytest
 from trader import calendar as tse
 from trader.config import DEFAULT_CONFIG_PATH, ConfigError, load_settings
 from trader.daily import target_session
-from trader.universe import UniverseError, ensure_universe, parse_jpx_listing, to_ticker
+from trader.universe import UniverseError, ensure_universe, find_listing_url, parse_jpx_listing, to_ticker
 
 JST = ZoneInfo("Asia/Tokyo")
 
@@ -99,3 +99,11 @@ def test_ensure_universe_refresh_and_fallback(tmp_path) -> None:
     df, warnings = ensure_universe(path, tiers, 40, date(2026, 12, 31), broken)
     assert list(df["ticker"]) == ["7203.T"]
     assert warnings and "前回の一覧" in warnings[0]
+
+
+def test_find_listing_url_follows_relative_link() -> None:
+    html = '<a href="/markets/statistics-equities/misc/abc123-att/data_j.xls">東証上場銘柄一覧</a>'
+    url = find_listing_url(html, "https://www.jpx.co.jp/markets/statistics-equities/misc/01.html")
+    assert url == "https://www.jpx.co.jp/markets/statistics-equities/misc/abc123-att/data_j.xls"
+    with pytest.raises(UniverseError):
+        find_listing_url("<html>no link</html>")
