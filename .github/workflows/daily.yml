@@ -1,0 +1,60 @@
+name: 毎日の売買判断
+
+on:
+  schedule:
+    - cron: "30 8 * * 1-5"   # 平日 17:30 JST（東証の終値確定後）
+    - cron: "30 10 * * 1-5"  # 平日 19:30 JST（データ遅れ時の再試行）
+    - cron: "30 22 * * 0-4"  # 平日 7:30 JST（最終確認。前営業日が未処理なら処理し、だめならエラー通知）
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: trader-state
+  cancel-in-progress: false
+
+jobs:
+  daily:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # actions/checkout v7
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # actions/setup-python v7
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: pip install -e .
+
+      - name: 売買判断と Discord 通知
+        id: run
+        env:
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+          SCHEDULE: ${{ github.event.schedule }}
+        run: |
+          args=()
+          if [ "$SCHEDULE" = "30 22 * * 0-4" ]; then args+=(--final-attempt); fi
+          code=0
+          python scripts/run_daily.py "${args[@]}" || code=$?
+          echo "code=$code" >> "$GITHUB_OUTPUT"
+          exit "$code"
+
+      - name: 状態を保存（commit）
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add state data
+          if git diff --cached --quiet; then echo "変更なし"; exit 0; fi
+          git commit -m "state: 売買判断を保存 $(TZ=Asia/Tokyo date +%F) [skip ci]"
+          for i in 1 2 3; do
+            git pull --rebase && git push && exit 0
+            sleep $((i * 5))
+          done
+          exit 1
+
+      - name: 失敗を通知
+        # 終了コード3はスクリプトが通知済み
+        if: failure() && steps.run.outputs.code != '3'
+        env:
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+        run: python scripts/notify_failure.py "毎日の売買判断が失敗しました"

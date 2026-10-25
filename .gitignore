@@ -1,0 +1,11 @@
+__pycache__/
+*.pyc
+.venv/
+.pytest_cache/
+.ruff_cache/
+*.egg-info/
+build/
+dist/
+.env
+# バックテスト用のキャッシュ（再取得できるため Git 管理外）
+.cache/

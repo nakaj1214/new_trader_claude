@@ -1,0 +1,59 @@
+name: バックテスト（過去データでの検証）
+
+on:
+  workflow_dispatch:
+    inputs:
+      sensitivity:
+        description: "ルールを少し変えた場合も計算する（数分長くなる）"
+        type: boolean
+        default: true
+      start:
+        description: "株価データの取得開始日"
+        type: string
+        default: "2006-01-01"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: trader-backtest
+  cancel-in-progress: false
+
+jobs:
+  backtest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # actions/checkout v7
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # actions/setup-python v7
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: pip install -e .
+
+      - name: バックテスト
+        env:
+          START: ${{ inputs.start }}
+          SENSITIVITY: ${{ inputs.sensitivity }}
+        run: |
+          args=(--start "$START")
+          if [ "$SENSITIVITY" = "true" ]; then args+=(--sensitivity); fi
+          python scripts/run_backtest.py "${args[@]}"
+
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # actions/upload-artifact v7
+        with:
+          name: backtest-report
+          path: reports/backtest_latest.md
+
+      - name: レポートを保存（commit）
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add reports data
+          if git diff --cached --quiet; then echo "変更なし"; exit 0; fi
+          git commit -m "report: バックテスト結果を更新 $(TZ=Asia/Tokyo date +%F) [skip ci]"
+          for i in 1 2 3; do
+            git pull --rebase && git push && exit 0
+            sleep $((i * 5))
+          done
+          exit 1
