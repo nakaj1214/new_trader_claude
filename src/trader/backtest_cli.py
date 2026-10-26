@@ -3,13 +3,14 @@
 from __future__ import annotations
 
 import argparse
+import json
 import logging
 import os
 from dataclasses import replace
 from datetime import date, timedelta
 from pathlib import Path
 
-from trader.backtest import default_scenarios, render_report, run_backtest, sensitivity_scenarios
+from trader.backtest import default_scenarios, render_report, run_backtest, sensitivity_scenarios, summarize
 from trader.config import DEFAULT_CONFIG_PATH, load_settings
 from trader.daily import DEFAULT_UNIVERSE, ROOT
 from trader.market import download_market_data
@@ -63,6 +64,10 @@ def main(argv: list[str] | None = None) -> int:
 
     args.out.parent.mkdir(parents=True, exist_ok=True)
     args.out.write_text(report + "\n", encoding="utf-8")
+    summary_path = args.out.with_name("backtest_summary.json")
+    summary_path.write_text(
+        json.dumps(summarize(results, md, universe, today), ensure_ascii=False, indent=1) + "\n", encoding="utf-8"
+    )
     print(report)
     summary = os.environ.get("GITHUB_STEP_SUMMARY")
     if summary:

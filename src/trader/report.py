@@ -40,6 +40,10 @@ def order_howto(settings: Settings) -> str:
 
 
 def sell_reason(order: Order | Fill, settings: Settings) -> str:
+    return sell_reason_text(order.reason, settings)
+
+
+def sell_reason_text(code: str, settings: Settings) -> str:
     s = settings.strategy
     texts = {
         "trailing_stop": f"保有中の最高値から{s.trailing_stop or 0:.0%}下がった（損切り・利益確定のルール）",
@@ -49,7 +53,7 @@ def sell_reason(order: Order | Fill, settings: Settings) -> str:
         "drawdown_limit": f"銘柄売買の資金が最高時から{s.max_drawdown or 0:.0%}減った（最大下落ルール）",
         "universe_exit": "売買対象の銘柄一覧（TOPIX100など）から外れた（月末の入れ替え）",
     }
-    return texts.get(order.reason, order.reason)
+    return texts.get(code, code)
 
 
 def buy_reason(order: Order) -> str:

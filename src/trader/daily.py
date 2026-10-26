@@ -73,8 +73,10 @@ def run(
     sender: Sender = send_discord,
 ) -> int:
     if not webhook and not dry_run:
-        print("DISCORD_WEBHOOK_URL が未設定のため、何もせず終了します（設定すると次回から動き始めます）")
-        return 0
+        if settings.mode == "live":
+            print("ERROR: 実運用（mode: live）には DISCORD_WEBHOOK_URL の登録が必要です", file=sys.stderr)
+            return 1
+        print("DISCORD_WEBHOOK_URL が未設定のため、通知はせずに模擬運用を続けます（結果はダッシュボードで確認）")
     target = target_session(now)
     state = load_state(state_path)
 
@@ -163,9 +165,9 @@ def run(
     if archive is not None:
         save_state(archive[1], archive[0])
     save_state(state, state_path)
-    if message:
+    if message and webhook:
         try:
-            sender(webhook or "", message)
+            sender(webhook, message)
         except NotifyError as exc:
             print(f"ERROR: {exc}", file=sys.stderr)
             return 1

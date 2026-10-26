@@ -209,6 +209,52 @@ def _quality_lines(md: MarketData, universe: pd.DataFrame, settings: Settings) -
     return lines + [""]
 
 
+def _clean(value: object) -> object:
+    if isinstance(value, float) and (pd.isna(value) or value in (float("inf"), float("-inf"))):
+        return None
+    if isinstance(value, dict):
+        return {k: _clean(v) for k, v in value.items()}
+    if isinstance(value, list):
+        return [_clean(v) for v in value]
+    return value
+
+
+def summarize(results: list[BacktestResult], md: MarketData, universe: pd.DataFrame, created: date) -> dict:
+    """ダッシュボード用の要約（JSON にそのまま書ける値だけ）。"""
+    ref = next(r for r in results if r.scenario.key == "reference")
+    plan = next((r for r in results if r.scenario.key == "plan"), None)
+    keys = ("cagr", "total_return", "max_drawdown", "volatility", "sharpe")
+    m = ref.metrics
+    ew = nav_metrics(equal_weight_index(md, list(universe["ticker"]), ref.nav.index))
+    summary: dict = {
+        "created": created.isoformat(),
+        "start": m["start"],
+        "end": m["end"],
+        "universe_size": len(universe),
+        "strategy": {k: m.get(k) for k in keys},
+        "topix": {k: ref.bench_metrics.get(k) for k in keys},
+        "equal_weight": {k: ew.get(k) for k in keys},
+        "halves": [
+            {
+                "label": label,
+                "strategy_cagr": nav_metrics(part)["cagr"],
+                "topix_cagr": nav_metrics(ref.bench.loc[part.index])["cagr"],
+            }
+            for label, part in _split_halves(ref.nav)
+        ],
+        "verdict": [line.removeprefix("- ").replace("**", "") for line in _verdict(ref)],
+    }
+    if plan is not None:
+        flows = plan.history["flow"]
+        mw = money_weighted_benchmark(plan.bench, flows, plan.scenario.settings.satellite.initial_capital)
+        summary["plan"] = {
+            "contributed": plan.state.total_contributed,
+            "final_equity": float(plan.history["equity"].iloc[-1]),
+            "topix_same_flows": float(mw.iloc[-1]),
+        }
+    return _clean(summary)
+
+
 def render_report(
     results: list[BacktestResult],
     sensitivity: list[BacktestResult],

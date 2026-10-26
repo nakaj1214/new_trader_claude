@@ -115,9 +115,16 @@ def _downloader(end: str = "2026-10-30"):
     return download, calls
 
 
-def test_daily_run_without_webhook_does_nothing(tmp_path) -> None:
-    code = run(settings=Settings(), now=NOW, state_path=tmp_path / "s.json", universe_path=tmp_path / "u.csv")
-    assert code == 0 and not (tmp_path / "s.json").exists()
+def test_daily_run_without_webhook_keeps_paper_running_but_refuses_live(tmp_path) -> None:
+    from dataclasses import replace
+
+    download, _ = _downloader()
+    kwargs = dict(now=NOW, universe_path=tmp_path / "u.csv", downloader=download, fetch_listing=_jpx)
+    assert run(settings=Settings(), state_path=tmp_path / "paper.json", **kwargs) == 0
+    assert (tmp_path / "paper.json").exists()  # 通知なしでも模擬運用の記録は進む
+    live = replace(Settings(), mode="live")
+    assert run(settings=live, state_path=tmp_path / "live.json", **kwargs) == 1
+    assert not (tmp_path / "live.json").exists()
 
 
 def test_daily_run_first_run_then_idempotent(tmp_path) -> None:
@@ -207,3 +214,25 @@ def test_switching_paper_to_live_archives_and_starts_fresh(tmp_path) -> None:
     assert "実運用を新しく始めました" in sent[-1] and "【模擬運用】" not in sent[-1]
     # 実運用から paper へは戻さない
     assert run(settings=Settings(), now=datetime(2026, 11, 2, 19, 0, tzinfo=JST), **kwargs) == 3
+
+
+def test_dashboard_renders_with_and_without_state() -> None:
+    from trader.dashboard import _nice_ticks, build_html
+
+    now = datetime(2026, 10, 30, 18, 0, tzinfo=JST)
+    empty = build_html(None, Settings(), None, None, now, "owner/repo", "main")
+    assert "まだ運用が始まっていません" in empty
+    assert "https://github.com/owner/repo/edit/main/config/settings.yaml" in empty
+
+    state = PortfolioState.new("2026-10-01", 50_000, 200_000)
+    state.last_session = "2026-10-30"
+    state.history = [
+        {"date": "2026-10-29", "nav": 1.0, "bench": 1.0, "equity": 50_000, "cash": 50_000, "core": 200_000, "flow": 0},
+        {"date": "2026-10-30", "nav": 1.05, "bench": 1.02, "equity": 52_500, "cash": 0, "core": 201_000, "flow": 0},
+    ]
+    state.pending = [Order("buy", "7203.T", 4, "momentum", "2026-10-30", 3_100, 1, 0.45)]
+    names = pd.DataFrame({"ticker": ["7203.T"], "name": ["<script>alert(1)</script>"]})
+    html = build_html(state, Settings(), names, None, now)
+    assert "<script>alert(1)</script>" not in html  # 銘柄名はエスケープする
+    assert "11/2(月)" in html and "4株" in html and "<svg" in html
+    assert _nice_ticks(-0.12, 0.54) == pytest.approx([-0.2, 0.0, 0.2, 0.4, 0.6])
