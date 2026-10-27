@@ -1,0 +1,78 @@
+{
+ "applied_splits": [],
+ "bench_index": 1.0,
+ "cash": 50000.0,
+ "contributed_months": [],
+ "core": {
+  "contributed": 200000.0,
+  "stale": false,
+  "value": 200000.0
+ },
+ "history": [
+  {
+   "bench": 1.0,
+   "cash": 50000.0,
+   "core": 200000.0,
+   "date": "2026-10-26",
+   "equity": 50000.0,
+   "flow": 0.0,
+   "nav": 1.0
+  }
+ ],
+ "last_rebalance": "2026-10-26",
+ "last_session": "2026-10-26",
+ "mode": "paper",
+ "pause_rebalances_left": 0,
+ "peak_nav": 1.0,
+ "pending": [
+  {
+   "created": "2026-10-26",
+   "momentum": 1.4166291891309681,
+   "rank": 1,
+   "reason": "momentum",
+   "ref_price": 3581.0,
+   "shares": 3,
+   "side": "buy",
+   "ticker": "6752.T"
+  },
+  {
+   "created": "2026-10-26",
+   "momentum": 0.878641765738652,
+   "rank": 3,
+   "reason": "momentum",
+   "ref_price": 2983.0,
+   "shares": 4,
+   "side": "buy",
+   "ticker": "7182.T"
+  },
+  {
+   "created": "2026-10-26",
+   "momentum": 0.8173032128953073,
+   "rank": 5,
+   "reason": "momentum",
+   "ref_price": 3421.0,
+   "shares": 3,
+   "side": "buy",
+   "ticker": "6971.T"
+  },
+  {
+   "created": "2026-10-26",
+   "momentum": 0.7197510279135675,
+   "rank": 6,
+   "reason": "momentum",
+   "ref_price": 7429.0,
+   "shares": 1,
+   "side": "buy",
+   "ticker": "8411.T"
+  }
+ ],
+ "positions": {},
+ "price_anomalies": {},
+ "realized_by_year": {},
+ "session_count": 1,
+ "start_date": "2026-10-26",
+ "total_contributed": 50000.0,
+ "trades": [],
+ "units": 50000.0,
+ "version": 1
+}
