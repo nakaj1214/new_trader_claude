@@ -42,3 +42,19 @@ def test_single_day_spike_is_reverted_and_unexplained_jump_excludes_ticker() -> 
     uni = make_universe(["A.T", "B.T"])
     ranked = strategy.rank_universe(md, md.signals(settings.strategy), uni, idx[-1], settings.strategy)
     assert [c.ticker for c in ranked] == ["A.T"]
+
+
+def test_same_day_rows_are_merged_not_dropped() -> None:
+    """Yahoo が最新日を0時の行と取引時刻の行に分けて返しても、どちらの値も残す。"""
+    import pandas as pd
+
+    from trader.market import from_frames
+
+    index = pd.DatetimeIndex(["2026-10-29", "2026-10-30 00:00", "2026-10-30 15:30"])
+    close = pd.DataFrame({"A.T": [100.0, 101.0, np.nan], BENCH: [10.0, np.nan, 11.0]}, index=index)
+    dividends = pd.DataFrame({"A.T": [0.0, 5.0, 0.0], BENCH: [0.0, 0.0, 0.0]}, index=index)
+    md = from_frames({"open": close, "close": close, "adj_close": close, "dividends": dividends})
+    assert list(md.sessions.strftime("%Y-%m-%d")) == ["2026-10-29", "2026-10-30"]
+    assert md.close.loc["2026-10-30", "A.T"] == 101.0
+    assert md.close.loc["2026-10-30", BENCH] == 11.0
+    assert md.dividends.loc["2026-10-30", "A.T"] == 5.0

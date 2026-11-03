@@ -98,10 +98,15 @@ def _normalize_index(index: pd.Index) -> pd.DatetimeIndex:
     return idx.normalize()
 
 
-def _dedupe(frame: pd.DataFrame) -> pd.DataFrame:
+def _dedupe(frame: pd.DataFrame, events: bool = False) -> pd.DataFrame:
+    """日付をそろえる。Yahoo は最新日を「0時の行」と「最終取引時刻の行」に分けて返すことがあり、
+    銘柄ごとに値の入る行が違うため、同じ日付の行は列ごとにまとめて1行にする（片方を捨てない）。"""
     frame = frame.copy()
     frame.index = _normalize_index(frame.index)
-    return frame[~frame.index.duplicated(keep="last")].sort_index()
+    if frame.index.has_duplicates:
+        grouped = frame.groupby(level=0)
+        frame = grouped.max() if events else grouped.last()  # last() は列ごとに欠損でない最後の値
+    return frame.sort_index()
 
 
 def from_frames(frames: dict[str, pd.DataFrame]) -> MarketData:
@@ -118,7 +123,7 @@ def from_frames(frames: dict[str, pd.DataFrame]) -> MarketData:
         if frame is None:
             frame = pd.DataFrame(0.0 if neutral else float("nan"), index=index, columns=columns)
         else:
-            frame = _dedupe(frame).reindex(index=index, columns=columns)
+            frame = _dedupe(frame, events=neutral).reindex(index=index, columns=columns)
         frame = frame.astype(float)
         built[name] = frame.fillna(0.0) if neutral else frame
     return MarketData(**built)
@@ -167,6 +172,11 @@ def download_market_data(tickers: Iterable[str], start: date, end: date | None =
                 base = base.reindex(base.index.union(frame.index))
                 base.update(frame)
                 frames[name] = base
+    stamps = pd.DatetimeIndex(frames["close"].index)
+    merged = _normalize_index(stamps)
+    if merged.has_duplicates:
+        log.info("同じ日付に複数の行があったため統合しました: %s（最終行の時刻 %s）",
+                 sorted({d.date().isoformat() for d in merged[merged.duplicated()]}), list(stamps[-3:]))
     md = from_frames(frames)
     md.quality = repair_market(md)
     for repair in md.quality.repairs:

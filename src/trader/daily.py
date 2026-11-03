@@ -119,10 +119,11 @@ def run(
 
     missing_universe = [t for t in universe["ticker"] if t in set(missing)]
     if len(missing_universe) > MAX_MISSING_RATIO * len(universe):
-        return fail(
-            "当日の株価が取れない銘柄が多すぎます",
-            f"{len(missing_universe)}/{len(universe)} 銘柄が欠損。データ提供元の不調の可能性があります",
-        )
+        detail = f"{len(missing_universe)}/{len(universe)} 銘柄が欠損。データ提供元の不調の可能性があります"
+        if final_attempt:
+            return fail("当日の株価が取れない銘柄が多すぎます", detail)
+        print(f"{target.date()} の株価が揃っていません（{detail}）。次の実行で再試行します")
+        return 0
     if missing_universe:
         warnings.append(f"当日の株価が取れなかった {len(missing_universe)} 銘柄は今回の判断から外しました")
     unreliable = md.quality.unreliable

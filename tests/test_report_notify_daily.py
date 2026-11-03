@@ -236,3 +236,22 @@ def test_dashboard_renders_with_and_without_state() -> None:
     assert "<script>alert(1)</script>" not in html  # 銘柄名はエスケープする
     assert "11/2(月)" in html and "4株" in html and "<svg" in html
     assert _nice_ticks(-0.12, 0.54) == pytest.approx([-0.2, 0.0, 0.2, 0.4, 0.6])
+
+
+def test_daily_run_retries_when_most_stocks_are_missing(tmp_path) -> None:
+    sent: list[str] = []
+    download, _ = _downloader()
+    md = download([], None, None)
+    md.close.loc["2026-10-30", ["1001.T", "1002.T", "1003.T"]] = np.nan  # 指数ETFだけ当日の値がある
+    kwargs = dict(
+        settings=Settings(),
+        now=NOW,
+        state_path=tmp_path / "state.json",
+        universe_path=tmp_path / "universe.csv",
+        webhook="https://discord.example/hook",
+        downloader=lambda *a: md,
+        fetch_listing=_jpx,
+        sender=lambda url, text: sent.append(text),
+    )
+    assert run(**kwargs) == 0 and sent == [] and not (tmp_path / "state.json").exists()
+    assert run(**kwargs, final_attempt=True) == 3 and "多すぎます" in sent[0]
