@@ -1,14 +1,14 @@
 {
  "applied_splits": [],
- "bench_index": 0.9894837620442868,
- "cash": 18746.788000000008,
+ "bench_index": 0.993307868466027,
+ "cash": 27866.659000000007,
  "contributed_months": [
   "2026-10"
  ],
  "core": {
   "contributed": 240000.0,
   "stale": false,
-  "value": 238718.34618711437
+  "value": 242607.34524111587
  },
  "history": [
   {
@@ -73,23 +73,32 @@
    "equity": 57973.79,
    "flow": 0.0,
    "nav": 0.964743
+  },
+  {
+   "bench": 0.993308,
+   "cash": 27866.66,
+   "core": 242607.35,
+   "date": "2026-11-05",
+   "equity": 57363.66,
+   "flow": 0.0,
+   "nav": 0.954589
   }
  ],
  "last_rebalance": "2026-10-30",
- "last_session": "2026-11-04",
+ "last_session": "2026-11-05",
  "mode": "paper",
  "pause_rebalances_left": 0,
  "peak_nav": 1.01241576,
  "pending": [
   {
-   "created": "2026-11-04",
+   "created": "2026-11-05",
    "momentum": null,
    "rank": null,
    "reason": "trailing_stop",
-   "ref_price": 3027.0,
+   "ref_price": 3168.0,
    "shares": 3,
    "side": "sell",
-   "ticker": "6971.T"
+   "ticker": "6752.T"
   }
  ],
  "positions": {
@@ -98,25 +107,16 @@
    "entry_date": "2026-10-27",
    "entry_price": 3676.0,
    "high_water": 3787.0,
-   "last_price": 3501.0,
+   "last_price": 3168.0,
    "shares": 3,
    "ticker": "6752.T"
-  },
-  "6971.T": {
-   "cost_basis": 10483.472999999998,
-   "entry_date": "2026-10-27",
-   "entry_price": 3491.0,
-   "high_water": 3572.0,
-   "last_price": 3027.0,
-   "shares": 3,
-   "ticker": "6971.T"
   },
   "7182.T": {
    "cost_basis": 12144.131999999998,
    "entry_date": "2026-10-27",
    "entry_price": 3033.0,
-   "high_water": 3055.0,
-   "last_price": 3024.0,
+   "high_water": 3063.0,
+   "last_price": 3063.0,
    "shares": 4,
    "ticker": "7182.T"
   },
@@ -125,17 +125,32 @@
    "entry_date": "2026-10-27",
    "entry_price": 7579.0,
    "high_water": 7889.0,
-   "last_price": 7547.0,
+   "last_price": 7741.0,
    "shares": 1,
    "ticker": "8411.T"
   }
  },
  "price_anomalies": {},
- "realized_by_year": {},
- "session_count": 7,
+ "realized_by_year": {
+  "2026": -1363.601999999999
+ },
+ "session_count": 8,
  "start_date": "2026-10-26",
  "total_contributed": 60000.0,
- "trades": [],
+ "trades": [
+  {
+   "cost_basis": 10483.472999999998,
+   "entry_date": "2026-10-27",
+   "exit_date": "2026-11-05",
+   "exit_reason": "trailing_stop",
+   "holding_sessions": 6,
+   "pnl": -1363.601999999999,
+   "proceeds": 9119.871,
+   "return_pct": -0.130071589825242,
+   "shares": 3,
+   "ticker": "6971.T"
+  }
+ ],
  "units": 60092.49000056276,
  "version": 1
 }
