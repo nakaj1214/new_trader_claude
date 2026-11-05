@@ -252,6 +252,7 @@ def test_daily_run_retries_when_most_stocks_are_missing(tmp_path) -> None:
         downloader=lambda *a: md,
         fetch_listing=_jpx,
         sender=lambda url, text: sent.append(text),
+        diagnose=lambda tickers: "診断テスト " + ",".join(tickers),
     )
     assert run(**kwargs) == 0 and sent == [] and not (tmp_path / "state.json").exists()
     assert run(**kwargs, final_attempt=True) == 3 and "多すぎます" in sent[0]

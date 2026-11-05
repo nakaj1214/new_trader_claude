@@ -154,6 +154,26 @@ def _frames_from_download(raw: pd.DataFrame, tickers: list[str]) -> dict[str, pd
     return frames
 
 
+def describe_latest_rows(tickers: list[str]) -> str:
+    """原因調査用: Yahoo が返した直近の行を、時刻（取引所の時間帯）付きでそのまま文字にする。
+
+    end を指定せずに取得するので、日付の境界で切り落とされた行があればここに現れる。
+    """
+    import yfinance as yf
+
+    raw = yf.download(
+        tickers, period="7d", interval="1d", auto_adjust=False, actions=False, group_by="column",
+        ignore_tz=False, progress=False, multi_level_index=True, timeout=30,
+    )
+    if raw is None or raw.empty:
+        return "（データなし）"
+    lines = [f"index tz={getattr(raw.index, 'tz', None)}"]
+    for ts in raw.index[-4:]:
+        closes = ", ".join(f"{t}={raw['Close'][t].get(ts)}" for t in tickers if t in raw["Close"].columns)
+        lines.append(f"{ts}: {closes}")
+    return "\n".join(lines)
+
+
 def download_market_data(tickers: Iterable[str], start: date, end: date | None = None) -> MarketData:
     """Yahoo Finance から日足を取得する。全く取れなかった銘柄は1回だけ取り直す。"""
     tickers = sorted(set(tickers))

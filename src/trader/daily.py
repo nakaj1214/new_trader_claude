@@ -16,7 +16,13 @@ import pandas as pd
 from trader import calendar as tse
 from trader import engine
 from trader.config import DEFAULT_CONFIG_PATH, Settings, load_settings
-from trader.market import DataNotReadyError, MarketData, download_market_data, require_session
+from trader.market import (
+    DataNotReadyError,
+    MarketData,
+    describe_latest_rows,
+    download_market_data,
+    require_session,
+)
 from trader.notify import NotifyError, send_discord
 from trader.portfolio import PortfolioState, load_state, save_state
 from trader.report import render_error, render_notification
@@ -36,6 +42,7 @@ log = logging.getLogger("trader.daily")
 
 Downloader = Callable[[list[str], date, date], MarketData]
 Sender = Callable[[str, str], None]
+Diagnose = Callable[[list[str]], str]
 
 
 def target_session(now: datetime) -> pd.Timestamp:
@@ -71,6 +78,7 @@ def run(
     downloader: Downloader = download_market_data,
     fetch_listing: Callable[[], pd.DataFrame] = fetch_jpx_listing,
     sender: Sender = send_discord,
+    diagnose: Diagnose = describe_latest_rows,
 ) -> int:
     if not webhook and not dry_run:
         if settings.mode == "live":
@@ -120,6 +128,12 @@ def run(
     missing_universe = [t for t in universe["ticker"] if t in set(missing)]
     if len(missing_universe) > MAX_MISSING_RATIO * len(universe):
         detail = f"{len(missing_universe)}/{len(universe)} 銘柄が欠損。データ提供元の不調の可能性があります"
+        try:  # 深夜に当日分が欠ける原因の調査用。失敗しても本処理には影響させない
+            sample = [settings.strategy.benchmark_ticker, *missing_universe[:2]]
+            print(f"[診断] 取得条件: end={target.date()}+1日、取得時刻 {now.astimezone(JST):%Y-%m-%d %H:%M} JST")
+            print("[診断] end を付けずに取り直した直近の行:\n" + diagnose(sample))
+        except Exception as exc:  # noqa: BLE001
+            print(f"[診断] 取り直しに失敗: {type(exc).__name__}: {exc}")
         if final_attempt:
             return fail("当日の株価が取れない銘柄が多すぎます", detail)
         print(f"{target.date()} の株価が揃っていません（{detail}）。次の実行で再試行します")
