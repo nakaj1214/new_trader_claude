@@ -1,6 +1,6 @@
 {
  "applied_splits": [],
- "bench_index": 0.9287763187674866,
+ "bench_index": 0.9610420936167566,
  "cash": 36282.23500000001,
  "contributed_months": [
   "2026-10"
@@ -8,7 +8,7 @@
  "core": {
   "contributed": 240000.0,
   "stale": false,
-  "value": 234912.09179383627
+  "value": 236401.49568685814
  },
  "history": [
   {
@@ -91,10 +91,19 @@
    "equity": 55041.24,
    "flow": 0.0,
    "nav": 0.915942
+  },
+  {
+   "bench": 0.961042,
+   "cash": 36282.24,
+   "core": 236401.5,
+   "date": "2026-11-09",
+   "equity": 56027.24,
+   "flow": 0.0,
+   "nav": 0.93235
   }
  ],
  "last_rebalance": "2026-10-30",
- "last_session": "2026-11-06",
+ "last_session": "2026-11-09",
  "mode": "paper",
  "pause_rebalances_left": 0,
  "peak_nav": 1.01241576,
@@ -105,7 +114,7 @@
    "entry_date": "2026-10-27",
    "entry_price": 3033.0,
    "high_water": 3063.0,
-   "last_price": 2890.0,
+   "last_price": 3044.0,
    "shares": 4,
    "ticker": "7182.T"
   },
@@ -114,7 +123,7 @@
    "entry_date": "2026-10-27",
    "entry_price": 7579.0,
    "high_water": 7889.0,
-   "last_price": 7199.0,
+   "last_price": 7569.0,
    "shares": 1,
    "ticker": "8411.T"
   }
@@ -123,7 +132,7 @@
  "realized_by_year": {
   "2026": -3987.0539999999983
  },
- "session_count": 9,
+ "session_count": 10,
  "start_date": "2026-10-26",
  "total_contributed": 60000.0,
  "trades": [
