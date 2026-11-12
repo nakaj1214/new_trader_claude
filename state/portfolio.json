@@ -1,6 +1,6 @@
 {
  "applied_splits": [],
- "bench_index": 0.9892447417169097,
+ "bench_index": 0.990200750087654,
  "cash": 36282.23500000001,
  "contributed_months": [
   "2026-10"
@@ -8,7 +8,7 @@
  "core": {
   "contributed": 240000.0,
   "stale": false,
-  "value": 242110.87727677522
+  "value": 243434.79184835023
  },
  "history": [
   {
@@ -118,10 +118,19 @@
    "equity": 57237.24,
    "flow": 0.0,
    "nav": 0.952486
+  },
+  {
+   "bench": 0.990201,
+   "cash": 36282.24,
+   "core": 243434.79,
+   "date": "2026-11-12",
+   "equity": 57044.24,
+   "flow": 0.0,
+   "nav": 0.949274
   }
  ],
  "last_rebalance": "2026-10-30",
- "last_session": "2026-11-11",
+ "last_session": "2026-11-12",
  "mode": "paper",
  "pause_rebalances_left": 0,
  "peak_nav": 1.01241576,
@@ -132,7 +141,7 @@
    "entry_date": "2026-10-27",
    "entry_price": 3033.0,
    "high_water": 3200.0,
-   "last_price": 3200.0,
+   "last_price": 3151.0,
    "shares": 4,
    "ticker": "7182.T"
   },
@@ -140,8 +149,8 @@
    "cost_basis": 7586.578999999999,
    "entry_date": "2026-10-27",
    "entry_price": 7579.0,
-   "high_water": 8155.0,
-   "last_price": 8155.0,
+   "high_water": 8158.0,
+   "last_price": 8158.0,
    "shares": 1,
    "ticker": "8411.T"
   }
@@ -150,7 +159,7 @@
  "realized_by_year": {
   "2026": -3987.0539999999983
  },
- "session_count": 12,
+ "session_count": 13,
  "start_date": "2026-10-26",
  "total_contributed": 60000.0,
  "trades": [
